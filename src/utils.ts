@@ -16,7 +16,7 @@ export const createSVGPath = (
       console.log(error);
     }
   } else if (points.length === 1) {
-    return `M${points[0][0]},${points[0][1]} L${points[0][0]},${points[0][1]}`;
+    return `M${points?.[0]?.[0]},${points?.[0]?.[1]} L${points?.[0]?.[0]},${points?.[0]?.[1]}`;
   }
   return '';
 };

@@ -1,12 +1,13 @@
 {
   "name": "@ilabo/rn-draw",
-  "version": "0.1.0",
-  "description": "test",
+  "version": "1.0.0",
+  "description": "ilabo",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
   "types": "lib/typescript/index.d.ts",
   "react-native": "src/index",
   "source": "src/index",
+  "private": false,
   "files": [
     "src",
     "lib",
@@ -40,7 +41,10 @@
     "ios",
     "android"
   ],
-  "repository": "https://github.com/ilabo-software/rn-draw.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ilabo-software/rn-draw.git"
+  },
   "author": "TuNguyen <tunv.1107@gmail.com> (https://ilabo.biz)",
   "license": "MIT",
   "bugs": {
@@ -162,5 +166,9 @@
   },
   "dependencies": {
     "@luncheon/simplify-svg-path": "^0.2.0"
+  },
+  "directories": {
+    "example": "example",
+    "lib": "lib"
   }
 }

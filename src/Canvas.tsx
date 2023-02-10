@@ -345,7 +345,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
                     acc2: { data: PathDataType[]; path: string[] },
                     data,
                     index
-                  ) => {
+                  ): any => {
                     const closeToPath = data.some(
                       ([x1, y1]) =>
                         Math.abs(x1 - x) < p.thickness + eraserSize &&
@@ -382,7 +382,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
       })
       .onEnd(() => {
         if (tool === DrawingTool.Brush) {
-          setPaths((prev) => {
+          setPaths((prev: any) => {
             const newSVGPath = generateSVGPath(path, simplifyOptions);
 
             if (prev.length === 0) {
