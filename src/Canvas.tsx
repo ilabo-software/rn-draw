@@ -2,6 +2,7 @@ import React, {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -211,8 +212,8 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
       opacity = DEFAULT_OPACITY,
       initialPaths = [],
       style,
-      height = screenHeight - 80,
-      width = screenWidth,
+      height = screenHeight * 3,
+      width = screenWidth * 3,
       simplifyOptions = {},
       onPathsChange,
       eraserSize = DEFAULT_ERASER_SIZE,
@@ -332,10 +333,12 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
 
     const panGesture = Gesture.Pan()
       .runOnJS(true)
-      .onChange(({ x, y }) => {
+      .onChange(({ x, y, numberOfPointers }) => {
         switch (tool) {
           case DrawingTool.Brush:
-            addPointToPath(x, y);
+            if (numberOfPointers === 1) {
+              addPointToPath(x, y);
+            }
             break;
           case DrawingTool.Eraser:
             setPaths((prevPaths) =>
@@ -375,12 +378,18 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
             break;
         }
       })
-      .onBegin(({ x, y }) => {
-        if (tool === DrawingTool.Brush) {
+      .onBegin(({ x, y, numberOfPointers, translationX, translationY }) => {
+        if (
+          tool === DrawingTool.Brush &&
+          numberOfPointers === 1 &&
+          translationX !== 0 &&
+          translationY !== 0
+        ) {
           addPointToPath(x, y);
         }
       })
       .onEnd(() => {
+        // set default
         if (tool === DrawingTool.Brush) {
           setPaths((prev: any) => {
             const newSVGPath = generateSVGPath(path, simplifyOptions);
@@ -429,7 +438,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
       })
       .minPointers(1)
       .minDistance(0)
-      .averageTouches(false)
+      .averageTouches(true)
       .hitSlop({
         height,
         width,
