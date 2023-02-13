@@ -1,6 +1,6 @@
 {
   "name": "@ilabo/rn-draw",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "ilabo",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
