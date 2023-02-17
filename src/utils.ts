@@ -1,3 +1,5 @@
+/* eslint-disable no-alert, no-console */
+
 import {
   SkPath,
   PaintStyle,
@@ -74,7 +76,7 @@ export const convertInnerPathToStandardPath = ({
   style,
   data,
 }: SkiaPath): PathType => {
-  const rawColor = paint.getColor();
+  const rawColor = paint.getColor() as any;
   const { color, opacity } = convertIntColor(rawColor);
 
   return {
@@ -147,7 +149,7 @@ export const convertCorePathToSkiaPath = (path: PathType): SkiaPath => {
     paint: newPaint,
     path: newPath,
     style: path.filled ? PaintStyle.Fill : PaintStyle.Stroke,
-    data: path.data[0], // TODO: support multiple paths
+    data: path.data[0] as any, // TODO: support multiple paths
   };
 };
 
