@@ -1,10 +1,6 @@
-export {
-  default as Canvas,
-  CanvasRef,
-  CanvasProps,
-  SimplifyOptions,
-} from './Canvas';
+export * from './core';
+
+export { default as Canvas, CanvasProps } from './Canvas';
 
 export * from './types';
 export * from './utils';
-export * from './constants';
