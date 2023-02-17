@@ -1,4 +1,4 @@
-import { SkPath, StrokeCap, StrokeJoin, SkPaint } from '@shopify/react-native-skia';
+import { IPath, StrokeCap, StrokeJoin, IPaint } from '@shopify/react-native-skia';
 import type { StrokeCap as CoreStrokeCap, StrokeJoin as CoreStrokeJoin, PathType, PointDataType } from './core';
 import type { SkiaPath } from './types';
 /**
@@ -37,7 +37,7 @@ export declare const SVGStrokeJoinToSkia: {
 };
 export declare const convertInnerPathToStandardPath: ({ paint, path, style, data, }: SkiaPath) => PathType;
 export declare const convertInnerPathsToStandardPaths: (paths: SkiaPath[]) => PathType[];
-export declare const setPaint: (paint: SkPaint, data: {
+export declare const setPaint: (paint: IPaint, data: {
     color: string;
     thickness: number;
     opacity: number;
@@ -52,7 +52,7 @@ export declare const setPaint: (paint: SkPaint, data: {
  * @param point1
  * @param point2
  */
-export declare const drawPoint: (path: SkPath, [x1, y1]: PointDataType, [x2, y2]: PointDataType) => void;
+export declare const drawPoint: (path: IPath, [x1, y1]: PointDataType, [x2, y2]: PointDataType) => void;
 export declare const convertCorePathToSkiaPath: (path: PathType) => SkiaPath;
 export declare const convertCorePathsToSkiaPaths: (paths: PathType[]) => SkiaPath[];
 //# sourceMappingURL=utils.d.ts.map

@@ -1,12 +1,12 @@
 /* eslint-disable no-alert, no-console */
 
 import {
-  SkPath,
+  IPath,
   PaintStyle,
   StrokeCap,
   StrokeJoin,
   Skia,
-  SkPaint,
+  IPaint,
 } from '@shopify/react-native-skia';
 import type {
   StrokeCap as CoreStrokeCap,
@@ -96,7 +96,7 @@ export const convertInnerPathsToStandardPaths = (
 ): PathType[] => paths.map(convertInnerPathToStandardPath);
 
 export const setPaint = (
-  paint: SkPaint,
+  paint: IPaint,
   data: {
     color: string;
     thickness: number;
@@ -122,7 +122,7 @@ export const setPaint = (
  * @param point2
  */
 export const drawPoint = (
-  path: SkPath,
+  path: IPath,
   [x1, y1]: PointDataType,
   [x2, y2]: PointDataType
 ) => {
@@ -142,7 +142,14 @@ export const convertCorePathToSkiaPath = (path: PathType): SkiaPath => {
   const newPath = Skia.Path.Make();
 
   for (let i = 0; i < path.data.length - 1; i++) {
-    drawPoint(newPath, path.data[i][0], path.data[i + 1][0]); // TODO: support multiple paths
+    const data = path.data;
+    if (data) {
+      const point1 = data?.[i]?.[0] as any;
+      const point2 = data?.[i + 1]?.[0] as any;
+      if (point1 && point2) {
+        drawPoint(newPath, point1, point2); // TODO: support multiple paths
+      }
+    }
   }
 
   return {
