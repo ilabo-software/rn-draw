@@ -84,20 +84,26 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
       () => convertCorePathsToSkiaPaths(initialPaths),
       [initialPaths]
     ) as any;
+
+    const pathPaint = useMemo(() => {
+      const p = Skia.Paint();
+      setPaint(p, {
+        color,
+        thickness,
+        opacity,
+        filled,
+        cap,
+        join,
+      });
+      return p;
+    }, [color, thickness, opacity, filled, cap, join]);
+
+
     let eraserPoint = useMemo(() => ({ x: 0, y: 0, erasing: false }), []);
 
     const canvasPaint = Skia.Paint();
     canvasPaint.setColor(Skia.Color(backgroundColor));
 
-    const pathPaint = Skia.Paint();
-    setPaint(pathPaint, {
-      color,
-      thickness,
-      opacity,
-      filled,
-      cap,
-      join,
-    });
     const eraserPaint = Skia.Paint();
     eraserPaint.setColor(Skia.Color('#000000'));
     eraserPaint.setStyle(PaintStyle.Fill);
@@ -198,13 +204,13 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
           drawPoint(path, prevPointRef.current!, [x, y]);
 
           prevPointRef.current = [x, y];
-          paths[paths.length].data.push([x, y]);
+          paths[paths.length - 1].data.push([x, y]);
         }
       },
       onEnd: () => {
         eraserPoint.erasing = false;
       },
-    });
+    }, [pathPaint, tool]);
 
     const onDraw = useDrawCallback(
       (canvas, info) => {
@@ -214,13 +220,15 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
         }
 
         // Clear screen
-        canvas.drawPaint(canvasPaint);
+        // canvas.drawPaint(canvasPaint);
 
         // Draw paths
         if (shareStrokeProperties) {
           paths.forEach(({ path }: any) => canvas.drawPath(path, pathPaint));
         } else {
-          paths.forEach(({ path, paint }: any) => canvas.drawPath(path, paint));
+          paths.forEach(({ path, paint }: any) => {
+            canvas.drawPath(path, paint)
+          });
         }
 
         if (eraserPoint.erasing) {
@@ -233,8 +241,8 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
         }
       },
       [
-        canvasPaint,
         pathPaint,
+        canvasPaint,
         eraserPaint,
         eraserPoint,
         eraserSize,
