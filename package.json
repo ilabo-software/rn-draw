@@ -168,7 +168,7 @@
   },
   "dependencies": {
     "@luncheon/simplify-svg-path": "^0.2.0",
-    "@shopify/react-native-skia": "https://github.com/Shopify/react-native-skia/releases/download/v0.1.103-alpha/shopify-react-native-skia-0.1.103.tgz"
+    "@shopify/react-native-skia": "^0.1.173"
   },
   "directories": {
     "example": "example",
