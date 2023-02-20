@@ -73,7 +73,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
       backgroundColor = DEFAULT_CANVAS_BACKGROUND_COLOR,
       debug,
       shareStrokeProperties,
-      touchDisabled,
+      touchDisabled = false,
     },
     ref
   ) => {
@@ -97,7 +97,6 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
       });
       return p;
     }, [color, thickness, opacity, filled, cap, join]);
-
 
     let eraserPoint = useMemo(() => ({ x: 0, y: 0, erasing: false }), []);
 
@@ -175,42 +174,45 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
       [paths]
     );
 
-    const touchHandler = useTouchHandler({
-      onStart: ({ x, y }) => {
-        if (tool === DrawingTool.Eraser) {
-          erasingPaths(x, y);
-          eraserPoint = { x, y, erasing: true };
-        } else {
-          const path = Skia.Path.Make();
-          path.setIsVolatile(true);
-          paths.push({
-            path,
-            paint: pathPaint,
-            style: filled ? PaintStyle.Fill : PaintStyle.Stroke,
-            data: [[x, y]],
-          });
-          path.moveTo(x, y);
-          prevPointRef.current = [x, y];
-        }
-      },
-      onActive: ({ x, y }) => {
-        if (tool === DrawingTool.Eraser) {
-          erasingPaths(x, y);
-          eraserPoint = { x, y, erasing: true };
-        } else {
-          // Get current path object
-          const { path } = paths[paths.length - 1] as any;
+    const touchHandler = useTouchHandler(
+      {
+        onStart: ({ x, y }) => {
+          if (tool === DrawingTool.Eraser) {
+            erasingPaths(x, y);
+            eraserPoint = { x, y, erasing: true };
+          } else {
+            const path = Skia.Path.Make();
+            path.setIsVolatile(true);
+            paths.push({
+              path,
+              paint: pathPaint,
+              style: filled ? PaintStyle.Fill : PaintStyle.Stroke,
+              data: [[x, y]],
+            });
+            path.moveTo(x, y);
+            prevPointRef.current = [x, y];
+          }
+        },
+        onActive: ({ x, y }) => {
+          if (tool === DrawingTool.Eraser) {
+            erasingPaths(x, y);
+            eraserPoint = { x, y, erasing: true };
+          } else {
+            // Get current path object
+            const { path } = paths[paths.length - 1] as any;
 
-          drawPoint(path, prevPointRef.current!, [x, y]);
+            drawPoint(path, prevPointRef.current!, [x, y]);
 
-          prevPointRef.current = [x, y];
-          paths[paths.length - 1].data.push([x, y]);
-        }
+            prevPointRef.current = [x, y];
+            paths[paths.length - 1].data.push([x, y]);
+          }
+        },
+        onEnd: () => {
+          eraserPoint.erasing = false;
+        },
       },
-      onEnd: () => {
-        eraserPoint.erasing = false;
-      },
-    }, [pathPaint, tool]);
+      [pathPaint, tool]
+    );
 
     const onDraw = useDrawCallback(
       (canvas, info) => {
@@ -227,7 +229,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
           paths.forEach(({ path }: any) => canvas.drawPath(path, pathPaint));
         } else {
           paths.forEach(({ path, paint }: any) => {
-            canvas.drawPath(path, paint)
+            canvas.drawPath(path, paint);
           });
         }
 
@@ -254,7 +256,10 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
 
     useEffect(
       () =>
-        onPathsChange && onPathsChange(convertInnerPathsToStandardPaths(paths)),
+        paths &&
+        paths.length > 0 &&
+        onPathsChange &&
+        onPathsChange(convertInnerPathsToStandardPaths(paths)),
       [paths, onPathsChange]
     );
 
