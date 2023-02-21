@@ -256,8 +256,6 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
 
     useEffect(
       () =>
-        paths &&
-        paths.length > 0 &&
         onPathsChange &&
         onPathsChange(convertInnerPathsToStandardPaths(paths)),
       [paths, onPathsChange]
