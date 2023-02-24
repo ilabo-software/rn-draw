@@ -1,42 +1,12 @@
-export type PathDataType = [number, number][];
-
-export interface PathType {
-  /**
-   * Color of the path
-   */
-  color: string;
-
-  /**
-   * SVG path. It does not need to be defined while passing a PathType to Draw as initialValues.
-   * It will always be defined if you get the path data from the component.
-   */
-  path?: string[];
-
-  /**
-   * Raw points data used to create the SVG path
-   */
-  data: PathDataType[];
-
-  /**
-   * Thickness of the path
-   */
-  thickness: number;
-
-  /**
-   * Opacity of the path
-   */
-  opacity: number;
-
-  /**
-   * Combine all the paths
-   */
-  combine?: boolean;
-}
+import type { PaintStyle, SkPaint, SkPath } from '@shopify/react-native-skia';
+import type { PathDataType } from './core';
 
 /**
- * Tool used on the canvas
+ * Custom Skia path to contain more information about the path
  */
-export enum DrawingTool {
-  Brush = 'brush',
-  Eraser = 'eraser',
+export interface SkiaPath {
+  path: SkPath; // TODO: support multiple paths
+  paint: SkPaint;
+  style: PaintStyle;
+  data: PathDataType; // TODO: support multiple paths
 }

@@ -1,5 +1,4 @@
-export * from './core';
-export { default as Canvas, CanvasProps } from './Canvas';
 export * from './types';
+export * from './constants';
 export * from './utils';
 //# sourceMappingURL=index.d.ts.map

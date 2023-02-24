@@ -1,208 +1,58 @@
 import React, {
-  forwardRef,
-  useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
-  useState,
+  forwardRef,
+  useCallback,
+  useEffect,
 } from 'react';
+import { StyleSheet } from 'react-native';
 import {
-  Animated,
-  Dimensions,
-  StyleProp,
-  StyleSheet,
-  View,
-  ViewStyle,
-} from 'react-native';
-import {
-  Gesture,
-  GestureDetector,
-  GestureHandlerRootView,
-} from 'react-native-gesture-handler';
-
+  Skia,
+  useDrawCallback,
+  useTouchHandler,
+  PaintStyle,
+  SkiaView,
+} from '@shopify/react-native-skia';
 import {
   DEFAULT_BRUSH_COLOR,
   DEFAULT_ERASER_SIZE,
   DEFAULT_OPACITY,
+  DEFAULT_STROKE_CAP,
+  DEFAULT_STROKE_JOIN,
   DEFAULT_THICKNESS,
   DEFAULT_TOOL,
-} from './constants';
-import { DrawingTool, PathDataType, PathType } from './types';
-import { createSVGPath } from './utils';
-import SVGRenderer from './renderer/SVGRenderer';
-import RendererHelper from './renderer/RendererHelper';
+  DEFAULT_CANVAS_BACKGROUND_COLOR,
+  CanvasRef,
+  CanvasProps as CoreCanvasProps,
+  DrawingTool,
+  PathType,
+  PointDataType,
+  getSvgHelper,
+} from './core';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+import {
+  convertCorePathsToSkiaPaths,
+  convertCorePathToSkiaPath,
+  convertInnerPathsToStandardPaths,
+  drawPoint,
+  setPaint,
+} from './utils';
 
-export interface CanvasProps {
+export interface CanvasProps extends CoreCanvasProps {
   /**
-   * Color of the brush strokes
-   * @default DEFAULT_BRUSH_COLOR
-   */
-  color?: string;
-
-  /**
-   * Thickness of the brush strokes
-   * @default DEFAULT_THICKNESS
-   */
-  thickness?: number;
-
-  /**
-   * Opacity of the brush strokes
-   * @default DEFAULT_OPACITY
-   */
-  opacity?: number;
-
-  /**
-   * Paths to be already drawn
-   * @default []
-   */
-  initialPaths?: PathType[];
-
-  /**
-   * Height of the canvas
-   */
-  height?: number;
-
-  /**
-   * Width of the canvas
-   */
-  width?: number;
-
-  /**
-   * Override the style of the container of the canvas
-   */
-  style?: StyleProp<ViewStyle>;
-
-  /**
-   * Callback function when paths change
-   */
-  onPathsChange?: (paths: PathType[]) => any;
-
-  /**
-   * SVG simplification options
-   */
-  simplifyOptions?: SimplifyOptions;
-
-  /**
-   * Width of eraser (to compensate for path simplification)
-   * @default DEFAULT_ERASER_SIZE
-   */
-  eraserSize?: number;
-
-  /**
-   * Initial tool of the canvas
-   * @default DEFAULT_TOOL
-   */
-  tool?: DrawingTool;
-
-  /**
-   * Combine current path with the last path if it's the same color,
-   * thickness, and opacity.
-   *
-   * **Note**: changing this value while drawing will only be effective
-   * on the next change to opacity, thickness, or color change
+   * When set to true the view will display information about the
+   * average time it takes to render.
    * @default false
    */
-  combineWithLatestPath?: boolean;
+  debug?: boolean;
 
   /**
-   * Allows for the canvas to be drawn on, put to false if you want to disable/lock
-   * the canvas
-   * @default true
+   * Background color of the canvas
+   * @default DEFAULT_CANVAS_BACKGROUND_COLOR
    */
-  enabled?: boolean;
+  backgroundColor?: string;
 }
-
-export interface SimplifyOptions {
-  /**
-   * Enable SVG path simplification on paths, except the one currently being drawn
-   */
-  simplifyPaths?: boolean;
-
-  /**
-   * Enable SVG path simplification on the stroke being drawn
-   */
-  simplifyCurrentPath?: boolean;
-
-  /**
-   * Amount of simplification to apply
-   */
-  amount?: number;
-
-  /**
-   * Ignore fractional part in the points. Improves performance
-   */
-  roundPoints?: boolean;
-}
-
-export interface CanvasRef {
-  /**
-   * Undo last brush stroke
-   */
-  undo: () => void;
-
-  /**
-   * Removes all brush strokes
-   */
-  clear: () => void;
-
-  /**
-   * Get brush strokes data
-   */
-  getPaths: () => PathType[];
-
-  /**
-   * Append a path to the current drawing paths
-   * @param path Path to append/draw
-   */
-  addPath: (path: PathType) => void;
-
-  /**
-   * Get SVG path string of the drawing
-   */
-  getSvg: () => string;
-}
-
-/**
- * Generate SVG path string. Helper method for createSVGPath
- *
- * @param paths SVG path data
- * @param simplifyOptions Simplification options for the SVG drawing simplification
- * @returns SVG path strings
- */
-const generateSVGPath = (
-  path: PathDataType,
-  simplifyOptions: SimplifyOptions
-) =>
-  createSVGPath(
-    path,
-    simplifyOptions.simplifyPaths ? simplifyOptions.amount! : 0,
-    simplifyOptions.roundPoints!
-  );
-
-/**
- * Generate multiple SVG path strings. If the path string is already defined, do not create a new one.
- *
- * @param paths SVG data paths
- * @param simplifyOptions Simplification options for the SVG drawing simplification
- * @returns An array of SVG path strings
- */
-const generateSVGPaths = (
-  paths: PathType[],
-  simplifyOptions: SimplifyOptions
-) =>
-  paths.map((i) => ({
-    ...i,
-    path: i.path
-      ? i.path
-      : i.data.reduce(
-          (acc: string[], data) => [
-            ...acc,
-            generateSVGPath(data, simplifyOptions),
-          ],
-          []
-        ),
-  }));
 
 const Canvas = forwardRef<CanvasRef, CanvasProps>(
   (
@@ -210,282 +60,222 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
       color = DEFAULT_BRUSH_COLOR,
       thickness = DEFAULT_THICKNESS,
       opacity = DEFAULT_OPACITY,
+      filled,
+      cap = DEFAULT_STROKE_CAP,
+      join = DEFAULT_STROKE_JOIN,
       initialPaths = [],
       style,
-      height = screenHeight * 3,
-      width = screenWidth * 3,
-      simplifyOptions = {},
-      onPathsChange,
+      height = '100%',
+      width = '100%',
       eraserSize = DEFAULT_ERASER_SIZE,
       tool = DEFAULT_TOOL,
-      combineWithLatestPath = false,
-      enabled = true,
+      onPathsChange,
+      backgroundColor = DEFAULT_CANVAS_BACKGROUND_COLOR,
+      debug,
+      shareStrokeProperties,
+      touchDisabled = false,
     },
     ref
   ) => {
-    simplifyOptions = {
-      simplifyPaths: true,
-      simplifyCurrentPath: false,
-      amount: 15,
-      roundPoints: true,
-      ...simplifyOptions,
-    };
+    const prevPointRef = useRef<PointDataType>();
+    const skiaViewRef = useRef<SkiaView>(null);
 
-    const [paths, setPaths] = useState<PathType[]>(
-      generateSVGPaths(initialPaths, simplifyOptions)
+    const paths = useMemo(
+      () => convertCorePathsToSkiaPaths(initialPaths),
+      [initialPaths]
+    ) as any;
+
+    const pathPaint = useMemo(() => {
+      const p = Skia.Paint();
+      setPaint(p, {
+        color,
+        thickness,
+        opacity,
+        filled,
+        cap,
+        join,
+      });
+      return p;
+    }, [color, thickness, opacity, filled, cap, join]);
+
+    let eraserPoint = useMemo(() => ({ x: 0, y: 0, erasing: false }), []);
+
+    const canvasPaint = Skia.Paint();
+    canvasPaint.setColor(Skia.Color(backgroundColor));
+
+    const eraserPaint = Skia.Paint();
+    eraserPaint.setColor(Skia.Color('#000000'));
+    eraserPaint.setStyle(PaintStyle.Fill);
+
+    const undo = useCallback(() => {
+      paths.length = Math.max(0, paths.length - 1);
+      skiaViewRef.current?.redraw();
+    }, [paths, skiaViewRef]);
+
+    const clear = useCallback(() => {
+      paths.length = 0;
+      skiaViewRef.current?.redraw();
+    }, [paths, skiaViewRef]);
+
+    const getPaths = useCallback(
+      (): PathType[] => convertInnerPathsToStandardPaths(paths),
+      [paths]
     );
-    const [path, setPath] = useState<PathDataType>([]);
 
-    const canvasContainerStyles = [
-      styles.canvas,
-      {
-        height,
-        width,
+    const addPath = useCallback(
+      (path: PathType) => {
+        paths.push(convertCorePathToSkiaPath(path));
       },
-      style,
-    ];
+      [paths]
+    );
 
-    const addPointToPath = (x: number, y: number) => {
-      setPath((prev) => [
-        ...prev,
-        [
-          simplifyOptions.roundPoints ? Math.floor(x) : x,
-          simplifyOptions.roundPoints ? Math.floor(y) : y,
-        ],
-      ]);
-    };
+    const addPaths = useCallback(
+      (corePaths: PathType[]) => {
+        paths.push(...convertCorePathsToSkiaPaths(corePaths));
+      },
+      [paths]
+    );
 
-    const undo = () => {
-      setPaths((list) =>
-        list.reduce((acc: PathType[], p, index) => {
-          if (index === list.length - 1) {
-            if (p.data.length > 1) {
-              return [
-                ...acc,
-                {
-                  ...p,
-                  data: p.data.slice(0, -1),
-                  path: p.path!.slice(0, -1),
-                },
-              ];
-            }
-            return acc;
-          }
-          return [...acc, p];
-        }, [])
-      );
-    };
-
-    const clear = () => {
-      setPaths([]);
-      setPath([]);
-    };
-
-    const getPaths = () => paths;
-
-    const addPath = (newPath: PathType) =>
-      setPaths((prev) => [...prev, newPath]);
-
-    const getSvg = () => {
-      const serializePath = (
-        d: string,
-        stroke: string,
-        strokeWidth: number,
-        strokeOpacity: number
-      ) =>
-        `<path d="${d}" stroke="${stroke}" stroke-width="${strokeWidth}" opacity="${strokeOpacity}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;
-
-      const separatePaths = (p: PathType) =>
-        p.path!.reduce(
-          (acc, innerPath) =>
-            `${acc}${serializePath(
-              innerPath,
-              p.color,
-              p.thickness,
-              p.opacity
-            )}`,
-          ''
+    const setPaths = useCallback(
+      (corePaths: PathType[]) => {
+        paths.splice(
+          0,
+          paths.length,
+          ...convertCorePathsToSkiaPaths(corePaths)
         );
+      },
+      [paths]
+    );
 
-      const combinedPath = (p: PathType) =>
-        `${serializePath(p.path!.join(' '), p.color, p.thickness, p.opacity)}`;
-
-      const serializedPaths = paths.reduce(
-        (acc, p) => `${acc}${p.combine ? combinedPath(p) : separatePaths(p)}`,
-        ''
-      );
-
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${serializedPaths}</svg>`;
-    };
+    const getSvg = useCallback(
+      () => getSvgHelper(getPaths(), width, height),
+      [getPaths, width, height]
+    );
 
     useImperativeHandle(ref, () => ({
       undo,
       clear,
       getPaths,
       addPath,
+      addPaths,
+      setPaths,
       getSvg,
     }));
 
+    const erasingPaths = useCallback(
+      (x: number, y: number) => {
+        const reversedPaths = [...paths].reverse();
+        reversedPaths.forEach(({ path }, index) => {
+          if (path.contains(x, y)) {
+            paths.splice(reversedPaths.length - index - 1, 1);
+          }
+        });
+      },
+      [paths]
+    );
+
+    const touchHandler = useTouchHandler(
+      {
+        onStart: ({ x, y }) => {
+          if (tool === DrawingTool.Eraser) {
+            erasingPaths(x, y);
+            eraserPoint = { x, y, erasing: true };
+          } else {
+            const path = Skia.Path.Make();
+            path.setIsVolatile(true);
+            paths.push({
+              path,
+              paint: pathPaint,
+              style: filled ? PaintStyle.Fill : PaintStyle.Stroke,
+              data: [[x, y]],
+            });
+            path.moveTo(x, y);
+            prevPointRef.current = [x, y];
+          }
+        },
+        onActive: ({ x, y }) => {
+          if (tool === DrawingTool.Eraser) {
+            erasingPaths(x, y);
+            eraserPoint = { x, y, erasing: true };
+          } else {
+            // Get current path object
+            const { path } = paths[paths.length - 1] as any;
+
+            drawPoint(path, prevPointRef.current!, [x, y]);
+
+            prevPointRef.current = [x, y];
+            paths[paths.length - 1].data.push([x, y]);
+          }
+        },
+        onEnd: () => {
+          eraserPoint.erasing = false;
+        },
+      },
+      [pathPaint, tool]
+    );
+
+    const onDraw = useDrawCallback(
+      (canvas, info) => {
+        if (!touchDisabled) {
+          // Update from pending touches
+          touchHandler(info.touches);
+        }
+
+        // Clear screen
+        // canvas.drawPaint(canvasPaint);
+
+        // Draw paths
+        if (shareStrokeProperties) {
+          paths.forEach(({ path }: any) => canvas.drawPath(path, pathPaint));
+        } else {
+          paths.forEach(({ path, paint }: any) => {
+            canvas.drawPath(path, paint);
+          });
+        }
+
+        if (eraserPoint.erasing) {
+          canvas.drawCircle(
+            eraserPoint.x,
+            eraserPoint.y,
+            eraserSize,
+            eraserPaint
+          );
+        }
+      },
+      [
+        pathPaint,
+        canvasPaint,
+        eraserPaint,
+        eraserPoint,
+        eraserSize,
+        paths,
+        touchDisabled,
+        shareStrokeProperties,
+      ]
+    );
+
     useEffect(
-      () => onPathsChange && onPathsChange(paths),
+      () =>
+        onPathsChange &&
+        onPathsChange(convertInnerPathsToStandardPaths(paths)),
       [paths, onPathsChange]
     );
 
-    const panGesture = Gesture.Pan()
-      .runOnJS(true)
-      .onChange(({ x, y, numberOfPointers }) => {
-        switch (tool) {
-          case DrawingTool.Brush:
-            if (numberOfPointers === 1) {
-              addPointToPath(x, y);
-            }
-            break;
-          case DrawingTool.Eraser:
-            setPaths((prevPaths) =>
-              prevPaths.reduce((acc: PathType[], p) => {
-                const filteredDataPaths = p.data.reduce(
-                  (
-                    acc2: { data: PathDataType[]; path: string[] },
-                    data,
-                    index
-                  ): any => {
-                    const closeToPath = data.some(
-                      ([x1, y1]) =>
-                        Math.abs(x1 - x) < p.thickness + eraserSize &&
-                        Math.abs(y1 - y) < p.thickness + eraserSize
-                    );
-
-                    // If point close to path, don't include it
-                    if (closeToPath) {
-                      return acc2;
-                    }
-
-                    return {
-                      data: [...acc2.data, data],
-                      path: [...acc2.path, p.path![index]],
-                    };
-                  },
-                  { data: [], path: [] }
-                );
-
-                if (filteredDataPaths.data.length > 0) {
-                  return [...acc, { ...p, ...filteredDataPaths }];
-                }
-
-                return acc;
-              }, [])
-            );
-            break;
-        }
-      })
-      .onBegin(({ x, y, numberOfPointers, translationX, translationY }) => {
-        if (
-          tool === DrawingTool.Brush &&
-          numberOfPointers === 1 &&
-          translationX !== 0 &&
-          translationY !== 0
-        ) {
-          addPointToPath(x, y);
-        }
-      })
-      .onEnd(() => {
-        // set default
-        if (tool === DrawingTool.Brush) {
-          setPaths((prev: any) => {
-            const newSVGPath = generateSVGPath(path, simplifyOptions);
-
-            if (prev.length === 0) {
-              return [
-                {
-                  color,
-                  path: [newSVGPath],
-                  data: [path],
-                  thickness,
-                  opacity,
-                  combine: combineWithLatestPath,
-                },
-              ];
-            }
-
-            const lastPath = prev[prev.length - 1];
-
-            // Check if the last path has the same properties
-            if (
-              lastPath.color === color &&
-              lastPath.thickness === thickness &&
-              lastPath.opacity === opacity
-            ) {
-              lastPath.path = [...lastPath.path!, newSVGPath];
-              lastPath.data = [...lastPath.data, path];
-
-              return [...prev.slice(0, -1), lastPath];
-            }
-
-            return [
-              ...prev,
-              {
-                color,
-                path: [newSVGPath],
-                data: [path],
-                thickness,
-                opacity,
-                combine: combineWithLatestPath,
-              },
-            ];
-          });
-          setPath([]);
-        }
-      })
-      .minPointers(1)
-      .minDistance(0)
-      .averageTouches(true)
-      .hitSlop({
-        height,
-        width,
-        top: 0,
-        left: 0,
-      })
-      .shouldCancelWhenOutside(true)
-      .enabled(enabled);
-
     return (
-      <GestureHandlerRootView style={canvasContainerStyles}>
-        <Animated.View>
-          <GestureDetector gesture={panGesture}>
-            <View>
-              <RendererHelper
-                currentColor={color}
-                currentOpacity={opacity}
-                currentPath={path}
-                currentThickness={thickness}
-                currentPathTolerance={
-                  simplifyOptions.simplifyCurrentPath
-                    ? simplifyOptions.amount!
-                    : 0
-                }
-                roundPoints={simplifyOptions.roundPoints!}
-                paths={paths}
-                height={height}
-                width={width}
-                Renderer={SVGRenderer}
-              />
-            </View>
-          </GestureDetector>
-        </Animated.View>
-      </GestureHandlerRootView>
+      <SkiaView
+        ref={skiaViewRef}
+        style={[styles.skia, style, { width, height }]}
+        onDraw={onDraw}
+        debug={debug}
+      />
     );
   }
 );
 
 const styles = StyleSheet.create({
-  canvas: {
-    backgroundColor: 'white',
-  },
-  canvasOverlay: {
-    position: 'absolute',
-    height: '100%',
-    width: '100%',
-    backgroundColor: '#000000',
+  skia: {
+    flex: 1,
+    overflow: 'hidden',
   },
 });
 

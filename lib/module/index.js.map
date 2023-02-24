@@ -1,1 +1,1 @@
-{"version":3,"names":["default","Canvas","CanvasRef","CanvasProps","SimplifyOptions"],"sourceRoot":"../../src","sources":["index.tsx"],"mappings":"AAAA,SACEA,OAAO,IAAIC,MAAM,EACjBC,SAAS,EACTC,WAAW,EACXC,eAAe,QACV,UAAU;AAEjB,cAAc,SAAS;AACvB,cAAc,SAAS;AACvB,cAAc,aAAa"}
+{"version":3,"names":["default","Canvas","CanvasProps"],"sourceRoot":"../../src","sources":["index.tsx"],"mappings":"AAAA,cAAc,QAAQ;AAEtB,SAASA,OAAO,IAAIC,MAAM,EAAEC,WAAW,QAAQ,UAAU;AAEzD,cAAc,SAAS;AACvB,cAAc,SAAS"}
