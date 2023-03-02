@@ -4,7 +4,6 @@ import React, {
   useRef,
   forwardRef,
   useCallback,
-  useEffect,
 } from 'react';
 import { StyleSheet } from 'react-native';
 import {
@@ -232,6 +231,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
             canvas.drawPath(path, paint);
           });
         }
+        onPathsChange && onPathsChange(convertInnerPathsToStandardPaths(paths));
 
         if (eraserPoint.erasing) {
           canvas.drawCircle(
@@ -243,6 +243,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
         }
       },
       [
+        onPathsChange,
         pathPaint,
         canvasPaint,
         eraserPaint,
@@ -254,12 +255,11 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
       ]
     );
 
-    useEffect(
-      () =>
-        onPathsChange &&
-        onPathsChange(convertInnerPathsToStandardPaths(paths)),
-      [paths, onPathsChange]
-    );
+    // useEffect(
+    //   () =>
+    //     onPathsChange && onPathsChange(convertInnerPathsToStandardPaths(paths)),
+    //   [paths, onPathsChange]
+    // );
 
     return (
       <SkiaView
