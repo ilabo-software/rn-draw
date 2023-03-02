@@ -208,9 +208,11 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
         },
         onEnd: () => {
           eraserPoint.erasing = false;
+          onPathsChange &&
+            onPathsChange(convertInnerPathsToStandardPaths(paths));
         },
       },
-      [pathPaint, tool]
+      [pathPaint, tool, onPathsChange]
     );
 
     const onDraw = useDrawCallback(
@@ -231,7 +233,6 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
             canvas.drawPath(path, paint);
           });
         }
-        onPathsChange && onPathsChange(convertInnerPathsToStandardPaths(paths));
 
         if (eraserPoint.erasing) {
           canvas.drawCircle(
@@ -243,7 +244,6 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
         }
       },
       [
-        onPathsChange,
         pathPaint,
         canvasPaint,
         eraserPaint,
