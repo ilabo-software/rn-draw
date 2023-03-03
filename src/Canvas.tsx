@@ -64,8 +64,8 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
       join = DEFAULT_STROKE_JOIN,
       initialPaths = [],
       style,
-      height = '100%',
-      width = '100%',
+      height,
+      width,
       eraserSize = DEFAULT_ERASER_SIZE,
       tool = DEFAULT_TOOL,
       onPathsChange,
@@ -274,7 +274,6 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
 
 const styles = StyleSheet.create({
   skia: {
-    flex: 1,
     overflow: 'hidden',
   },
 });

@@ -49,8 +49,8 @@ const combinedPath = (p: PathType) =>
  */
 export const getSvgHelper = (
   paths: PathType[],
-  width: number | string,
-  height: number | string
+  width: number | string | any,
+  height: number | string | any
 ) => {
   const serializedPaths = paths.reduce(
     (acc, p) => `${acc}${p.combine ? combinedPath(p) : separatePaths(p)}`,

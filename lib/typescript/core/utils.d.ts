@@ -7,5 +7,5 @@ import type { PathType } from './types';
  * @param height Height of the canvas (SVG)
  * @returns String representation of the SVG
  */
-export declare const getSvgHelper: (paths: PathType[], width: number | string, height: number | string) => string;
+export declare const getSvgHelper: (paths: PathType[], width: number | string | any, height: number | string | any) => string;
 //# sourceMappingURL=utils.d.ts.map
