@@ -5,7 +5,7 @@ import React, {
   forwardRef,
   useCallback,
 } from 'react';
-import { StyleSheet } from 'react-native';
+import { PixelRatio, StyleSheet } from 'react-native';
 import {
   Skia,
   useDrawCallback,
@@ -13,6 +13,7 @@ import {
   PaintStyle,
   SkiaView,
   ImageFormat,
+  SkRect,
 } from '@shopify/react-native-skia';
 import {
   DEFAULT_BRUSH_COLOR,
@@ -147,6 +148,12 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
       [paths]
     );
 
+    const getDistance = (x1: number, y1: number, x2: number, y2: number) => {
+      const x = x2 - x1;
+      const y = y2 - y1;
+      return Math.sqrt(x * x + y * y);
+    };
+
     const getSvg = useCallback(
       () => getSvgHelper(getPaths(), width, height),
       [getPaths, width, height]
@@ -154,13 +161,51 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
 
     const getImageSnapshot = useCallback(() => {
       if (skiaViewRef.current) {
-        const image = skiaViewRef.current?.makeImageSnapshot();
+        let xSnapshot = 0;
+        let ySnapshot = 0;
+        let skRectMaxX: any = null;
+        let skRectMaxY: any = null;
+        paths.forEach(({ path }: any) => {
+          const skRect: SkRect = path.computeTightBounds();
+          if (xSnapshot === 0) {
+            xSnapshot = skRect.x;
+          }
+          if (skRect.x < xSnapshot) {
+            xSnapshot = skRect.x;
+          }
+          if (ySnapshot === 0) {
+            ySnapshot = skRect.y;
+          }
+          if (skRect.y < ySnapshot) {
+            ySnapshot = skRect.y;
+          }
+          if (skRectMaxX === null || skRectMaxX.x < skRect.x) {
+            skRectMaxX = skRect;
+          }
+          if (skRectMaxY === null || skRectMaxY.y < skRect.y) {
+            skRectMaxY = skRect;
+          }
+        });
+        const widthSnapshot =
+          skRectMaxX.width +
+          getDistance(xSnapshot, ySnapshot, skRectMaxX.x, skRectMaxX.y) +
+          20;
+        const heightSnapshot =
+          skRectMaxY.height +
+          getDistance(xSnapshot, ySnapshot, skRectMaxY.x, skRectMaxY.y) +
+          20;
+        const image = skiaViewRef.current?.makeImageSnapshot({
+          width: PixelRatio.getPixelSizeForLayoutSize(widthSnapshot),
+          height: PixelRatio.getPixelSizeForLayoutSize(heightSnapshot),
+          x: PixelRatio.getPixelSizeForLayoutSize(xSnapshot - 10),
+          y: PixelRatio.getPixelSizeForLayoutSize(ySnapshot - 10),
+        });
         const data = image.encodeToBase64(ImageFormat.PNG, 100);
         const url = `data:image/png;base64,${data}`;
         return url;
       }
       return null;
-    }, []);
+    }, [paths]);
 
     useImperativeHandle(ref, () => ({
       undo,
@@ -245,7 +290,6 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
             canvas.drawPath(path, paint);
           });
         }
-
         if (eraserPoint.erasing) {
           canvas.drawCircle(
             eraserPoint.x,
@@ -266,12 +310,6 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
         shareStrokeProperties,
       ]
     );
-
-    // useEffect(
-    //   () =>
-    //     onPathsChange && onPathsChange(convertInnerPathsToStandardPaths(paths)),
-    //   [paths, onPathsChange]
-    // );
 
     return (
       <SkiaView
