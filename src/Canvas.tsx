@@ -12,6 +12,7 @@ import {
   useTouchHandler,
   PaintStyle,
   SkiaView,
+  ImageFormat,
 } from '@shopify/react-native-skia';
 import {
   DEFAULT_BRUSH_COLOR,
@@ -151,6 +152,16 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
       [getPaths, width, height]
     );
 
+    const getImageSnapshot = useCallback(() => {
+      if (skiaViewRef.current) {
+        const image = skiaViewRef.current?.makeImageSnapshot();
+        const data = image.encodeToBase64(ImageFormat.PNG, 100);
+        const url = `data:image/png;base64,${data}`;
+        return url;
+      }
+      return null;
+    }, []);
+
     useImperativeHandle(ref, () => ({
       undo,
       clear,
@@ -159,6 +170,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
       addPaths,
       setPaths,
       getSvg,
+      getImageSnapshot,
     }));
 
     const erasingPaths = useCallback(

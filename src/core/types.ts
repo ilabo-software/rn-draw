@@ -225,4 +225,6 @@ export interface CanvasRef {
    * Get SVG path string of the drawing
    */
   getSvg: () => string;
+
+  getImageSnapshot: () => any;
 }
