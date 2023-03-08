@@ -80,6 +80,8 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
   ) => {
     const prevPointRef = useRef<PointDataType>();
     const skiaViewRef = useRef<SkiaView>(null);
+    const skRectMaxX = useRef<any[]>([]);
+    const skRectMaxY = useRef<any[]>([]);
 
     const paths = useMemo(
       () => convertCorePathsToSkiaPaths(initialPaths),
@@ -109,6 +111,8 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
     eraserPaint.setStyle(PaintStyle.Fill);
 
     const undo = useCallback(() => {
+      skRectMaxX.current.pop();
+      skRectMaxY.current.pop();
       paths.length = Math.max(0, paths.length - 1);
       skiaViewRef.current?.redraw();
     }, [paths, skiaViewRef]);
@@ -116,6 +120,8 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
     const clear = useCallback(() => {
       paths.length = 0;
       skiaViewRef.current?.redraw();
+      skRectMaxX.current = [];
+      skRectMaxY.current = [];
     }, [paths, skiaViewRef]);
 
     const getPaths = useCallback(
@@ -160,11 +166,11 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
     );
 
     const getImageSnapshot = useCallback(() => {
+      if (skRectMaxX.current.length === 0 || skRectMaxY.current.length === 0)
+        return;
       if (skiaViewRef.current) {
         let xSnapshot = 0;
         let ySnapshot = 0;
-        let skRectMaxX: any = null;
-        let skRectMaxY: any = null;
         paths.forEach(({ path }: any) => {
           const skRect: SkRect = path.computeTightBounds();
           if (xSnapshot === 0) {
@@ -179,21 +185,22 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
           if (skRect.y < ySnapshot) {
             ySnapshot = skRect.y;
           }
-          if (skRectMaxX === null || skRectMaxX.x < skRect.x) {
-            skRectMaxX = skRect;
-          }
-          if (skRectMaxY === null || skRectMaxY.y < skRect.y) {
-            skRectMaxY = skRect;
-          }
         });
         const widthSnapshot =
-          skRectMaxX.width +
-          getDistance(xSnapshot, ySnapshot, skRectMaxX.x, skRectMaxX.y) +
-          20;
+          getDistance(
+            xSnapshot,
+            ySnapshot,
+            skRectMaxX.current[skRectMaxX.current.length - 1],
+            ySnapshot
+          ) + 20;
         const heightSnapshot =
-          skRectMaxY.height +
-          getDistance(xSnapshot, ySnapshot, skRectMaxY.x, skRectMaxY.y) +
-          20;
+          getDistance(
+            xSnapshot,
+            ySnapshot,
+            xSnapshot,
+            skRectMaxY.current[skRectMaxY.current.length - 1]
+          ) + 20;
+
         const image = skiaViewRef.current?.makeImageSnapshot({
           width: PixelRatio.getPixelSizeForLayoutSize(widthSnapshot),
           height: PixelRatio.getPixelSizeForLayoutSize(heightSnapshot),
@@ -259,6 +266,19 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
 
             drawPoint(path, prevPointRef.current!, [x, y]);
 
+            // push max X of path
+            if (
+              skRectMaxX.current.length === 0 ||
+              skRectMaxX.current[skRectMaxX.current.length - 1] < x
+            ) {
+              skRectMaxX.current.push(x);
+            }
+            if (
+              skRectMaxY.current.length === 0 ||
+              skRectMaxY.current[skRectMaxY.current.length - 1] < y
+            ) {
+              skRectMaxY.current.push(y);
+            }
             prevPointRef.current = [x, y];
             paths[paths.length - 1].data.push([x, y]);
           }
