@@ -129,7 +129,7 @@ export const drawPoint = (
   const xMid = (x1 + x2) / 2;
   const yMid = (y1 + y2) / 2;
 
-  path.quadTo(x1, y1, xMid, yMid);
+  path.quadTo(x1, y1, x1, y1);
 };
 
 export const convertCorePathToSkiaPath = (path: PathType): SkiaPath => {
