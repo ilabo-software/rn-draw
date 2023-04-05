@@ -52,7 +52,7 @@ export declare const setPaint: (paint: SkPaint, data: {
  * @param point1
  * @param point2
  */
-export declare const drawPoint: (path: SkPath, [x1, y1]: PointDataType, [x2, y2]: PointDataType) => void;
+export declare const drawPoint: (path: SkPath, [x1, y1]: PointDataType, [_x2, _y2]: PointDataType) => void;
 export declare const convertCorePathToSkiaPath: (path: PathType) => SkiaPath;
 export declare const convertCorePathsToSkiaPaths: (paths: PathType[]) => SkiaPath[];
 //# sourceMappingURL=utils.d.ts.map

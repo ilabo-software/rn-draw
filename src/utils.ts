@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-alert, no-console */
 
 import {
@@ -124,10 +125,10 @@ export const setPaint = (
 export const drawPoint = (
   path: SkPath,
   [x1, y1]: PointDataType,
-  [x2, y2]: PointDataType
+  [_x2, _y2]: PointDataType
 ) => {
-  const xMid = (x1 + x2) / 2;
-  const yMid = (y1 + y2) / 2;
+  // const xMid = (x1 + x2) / 2;
+  // const yMid = (y1 + y2) / 2;
 
   path.quadTo(x1, y1, x1, y1);
 };

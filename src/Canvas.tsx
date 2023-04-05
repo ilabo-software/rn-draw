@@ -240,6 +240,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
     const touchHandler = useTouchHandler(
       {
         onStart: ({ x, y }) => {
+          if (touchDisabled) return;
           if (tool === DrawingTool.Eraser) {
             erasingPaths(x, y);
             eraserPoint = { x, y, erasing: true };
@@ -257,6 +258,7 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
           }
         },
         onActive: ({ x, y }) => {
+          if (touchDisabled) return;
           if (tool === DrawingTool.Eraser) {
             erasingPaths(x, y);
             eraserPoint = { x, y, erasing: true };
@@ -284,12 +286,13 @@ const Canvas = forwardRef<CanvasRef, CanvasProps>(
           }
         },
         onEnd: () => {
+          if (touchDisabled) return;
           eraserPoint.erasing = false;
           onPathsChange &&
             onPathsChange(convertInnerPathsToStandardPaths(paths));
         },
       },
-      [pathPaint, tool, onPathsChange]
+      [pathPaint, tool, onPathsChange, touchDisabled]
     );
 
     const onDraw = useDrawCallback(
